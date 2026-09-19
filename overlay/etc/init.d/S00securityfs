@@ -1,0 +1,19 @@
+#!/bin/sh
+# Mount securityfs at boot (required by Impulse LSM)
+case "$1" in
+  start)
+    printf "Mounting securityfs: "
+    if mount -t securityfs securityfs /sys/kernel/security; then
+        echo OK
+    else
+        echo FAIL
+    fi
+    ;;
+  stop)
+    umount /sys/kernel/security
+    ;;
+  *)
+    echo "Usage: $0 {start|stop}"
+    exit 1
+    ;;
+esac

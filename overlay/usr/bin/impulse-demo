@@ -1,0 +1,15 @@
+#!/bin/sh
+# Impulse Guard demo: run a script from /tmp (blocked) and from /root (allowed)
+echo "== Impulse Guard demo =="
+printf '#!/bin/sh\necho "script executed"\n' > /tmp/demo.sh
+chmod +x /tmp/demo.sh
+cp /tmp/demo.sh /root/demo.sh
+
+echo "[1] exec from /tmp (should be BLOCKED):"
+/tmp/demo.sh || echo "    -> denied (exit code $?)"
+
+echo "[2] exec from /root (should be ALLOWED):"
+/root/demo.sh
+
+echo "[3] security log:"
+cat /sys/kernel/security/impulse/log
