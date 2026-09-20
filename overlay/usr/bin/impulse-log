@@ -1,0 +1,50 @@
+#!/bin/sh
+# impulse-log: pretty-print Impulse LSM event log
+# Usage: impulse-log [-f] [-u UID]
+LOG=${IMPULSE_LOG:-/sys/kernel/security/impulse/log}
+FILTER_UID=""
+FOLLOW=0
+TAB=$(printf '\t')
+FMT='%-6s %10s  %-14s %-8s %-6s %-16s %s\n'
+
+usage() {
+    echo "Usage: impulse-log [-f] [-u UID]" >&2
+    exit 1
+}
+
+while getopts "fu:h" opt; do
+    case "$opt" in
+        f) FOLLOW=1 ;;
+        u) FILTER_UID="$OPTARG" ;;
+        *) usage ;;
+    esac
+done
+
+if [ ! -r "$LOG" ]; then
+    echo "impulse-log: cannot read $LOG (securityfs mounted? run as root?)" >&2
+    exit 1
+fi
+
+last=-1
+shown=0
+
+while : ; do
+    while IFS="$TAB" read -r seq ts action pid uid comm path; do
+        [ -n "$seq" ] || continue
+        [ "$seq" -gt "$last" ] || continue
+        last=$seq
+        if [ -n "$FILTER_UID" ] && [ "$uid" != "$FILTER_UID" ]; then
+            continue
+        fi
+        if [ "$shown" = 0 ]; then
+            printf "$FMT" SEQ TIME ACTION PID UID COMM PATH
+            shown=1
+        fi
+        printf "$FMT" "$seq" "$ts" "$action" "$pid" "$uid" "$comm" "$path"
+    done < "$LOG"
+    if [ "$FOLLOW" = 0 ]; then
+        [ "$shown" = 1 ] || echo "No events."
+        break
+    fi
+    sleep 1
+done
