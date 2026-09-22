@@ -1,0 +1,39 @@
+#!/bin/sh
+# impulse-status: one-shot security posture summary
+
+echo "== Impulse Guard status =="
+echo "Kernel:        $(uname -r)"
+
+if [ -r /sys/kernel/security/lsm ]; then
+    echo "LSMs active:   $(cat /sys/kernel/security/lsm)"
+else
+    echo "LSMs active:   securityfs not mounted"
+fi
+
+if [ -r /sys/kernel/security/lockdown ]; then
+    echo "Lockdown mode: $(cat /sys/kernel/security/lockdown)"
+else
+    echo "Lockdown mode: n/a"
+fi
+
+if [ -r /proc/sys/kernel/dmesg_restrict ]; then
+    v=$(cat /proc/sys/kernel/dmesg_restrict)
+    if [ "$v" = "1" ]; then s=enabled; else s=disabled; fi
+    echo "dmesg_restrict: $s"
+fi
+
+if [ -r /proc/sys/kernel/yama/ptrace_scope ]; then
+    echo "ptrace_scope:  $(cat /proc/sys/kernel/yama/ptrace_scope)"
+fi
+
+LOG=/sys/kernel/security/impulse/log
+if [ -r "$LOG" ]; then
+    n=$(grep -c "" "$LOG")
+    echo "Impulse events logged: $n"
+    if [ "$n" -gt 0 ]; then
+        echo "Last event:"
+        tail -n 1 "$LOG"
+    fi
+else
+    echo "Impulse events logged: n/a (securityfs not mounted?)"
+fi
